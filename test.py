@@ -5,26 +5,47 @@ import mtable
 
 
 def test_rst():
-    header = ['abc', 'bcd', 'cde', 'def']
+    header = ['名字', '网站', '备注', '其它']
     data = [
-        ['str1', 1, 1.1, None],
-        ['str2', 2, 2.2, None],
-        ['str3', 3, 3.3, None],
-        ['str4', 4, 4.4, None],
+        ['百度', 'www.baidu.com', '搜索，网盘，地图', None],
+        ['新浪', 'www.sina.com.cn', '新闻', None],
+        ['腾讯', 'www.qq.com', '聊天', '微信'],
+        ['网易', 'www.163.com', '邮箱', '１２３'],
     ]
     table = mtable.MarkupTable()
-    table.setData(data, header)
-    print('rst table\n-------------')
-    print(table.rst_table())
-    print('rst table with nosep\n---------------------')
-    print(table.rst_table('nosep'))
+    table.set_data(data, header, encoding='utf8')
+    print('''
+rst table
+---------''')
+    print(table.to_rst())
+    print('''
+rst table with style 1
+----------------------''')
+    print(table.to_rst(1))
+
     # no header
     table2 = mtable.MarkupTable()
-    table2.setData(data)
-    print('rst table with no header\n-------------------------------')
-    print(table2.rst_table())
-    print('rst table with no header and nosep\n----------------------------------')
-    print(table2.rst_table('nosep'))
+    table2.set_data(data, encoding='utf8')
+    print('''
+rst table with no header
+------------------------''')
+    print(table2.to_rst())
+    print('''
+rst table with no header and style 1
+------------------------------------''')
+    print(table2.to_rst(1))
+
+    print('''
+md table
+--------''')
+    print(table.to_md())
+
+    print('''
+csv table
+---------
+output test.csv
+    ''')
+    table.to_csv('test.csv')
 
 
 if __name__ == '__main__':

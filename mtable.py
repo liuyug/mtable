@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # -*- encoding:utf-8 -*-
 
+import sys
+import csv
+
+
 AlignSymbol = {
     'left': '<',
     'center': '^',
     'right': '>',
 }
 
-CjkRange = (
+CjkRange = (  # UTF-8
     (0x2E80, 0x9FC3),
     (0xAC00, 0xD7A3),
     (0xF900, 0xFAFF),
@@ -32,12 +36,12 @@ class MarkupTable(object):
             self.row_count(), self.column_count()
         )
 
-    def setData(self, data, header=None, encoding=None):
+    def set_data(self, data, header=None, encoding=None):
         if header:
             self._header = []
             for h in header:
                 self._header.append({
-                    'data': h.decode(encoding) if encoding else h,
+                    'data': self.decode(h, encoding),
                     'format': lambda x: '%s' % x,
                     'align': 'center',
                     'MB': 0,
@@ -47,7 +51,7 @@ class MarkupTable(object):
             row = []
             for d in dd:
                 row.append({
-                    'data': d.decode(encoding) if encoding else d,
+                    'data': self.decode(d, encoding),
                     'format': lambda x: '%s' % x,
                     'align': 'left',
                     'MB': 0,
@@ -61,6 +65,14 @@ class MarkupTable(object):
     def column_count(self):
         return len(self._data[0])
 
+    def decode(self, value, encoding=None):
+        if not encoding or not isinstance(value, str):
+            return value
+        if sys.version_info.major == 3:
+            return value.encode(encoding).decode('UTF-8')
+        else:
+            return value.decode(encoding)
+
     def _calc_widths(self, columns=None):
         if columns is None:
             columns = range(self.column_count())
@@ -69,14 +81,16 @@ class MarkupTable(object):
         for column in columns:
             # header
             if self._header:
-                item = self._header[column]
-                mb = self.cjk_count(self.get_item_text(item))
-                self._columns_width[column] = self.get_item_text_length(item) + mb
+                item = self.get_item(0, column, header=True)
+                mb = self.cjk_count(self.get_item_text(0, column, header=True))
+                self._columns_width[column] = \
+                    self.get_item_text_length(0, column, header=True) + mb
+                item['MB'] = mb
             # data
             for row in range(self.row_count()):
-                item = self._data[row][column]
-                mb = self.cjk_count(self.get_item_text(item))
-                w = self.get_item_text_length(item) + mb
+                item = self.get_item(row, column)
+                mb = self.cjk_count(self.get_item_text(row, column))
+                w = self.get_item_text_length(row, column) + mb
                 self._columns_width[column] = max(w, self._columns_width[column])
                 item['MB'] = mb
         return self._columns_width
@@ -91,7 +105,14 @@ class MarkupTable(object):
                     break
         return count
 
-    def get_item_text(self, item):
+    def get_item(self, row, column, header=False):
+        if header:
+            return self._header[column]
+        else:
+            return self._data[row][column]
+
+    def get_item_text(self, row, column, header=False):
+        item = self.get_item(row, column, header)
         value = item['data']
         if value is None:
             text = self._null_char
@@ -99,8 +120,8 @@ class MarkupTable(object):
             text = item['format'](value)
         return text
 
-    def get_item_text_length(self, item):
-        text = self.get_item_text(item)
+    def get_item_text_length(self, row, column, header=False):
+        text = self.get_item_text(row, column, header)
         return len(text)
 
     def set_align(self, align, rows=None, columns=None):
@@ -131,36 +152,26 @@ class MarkupTable(object):
             for column in columns:
                 self._data[row][column]['format'] = fmt_func
 
-    def get_data(self, row, column, role='data'):
-        item = self._data[row][column]
+    def get_data(self, row, column, role='data', header=False):
+        item = self.get_item(row, column, header)
         return item.get(role)
-
-    def csv(self, filename):
-        with open(filename, 'wt') as f:
-            for row in self._data:
-                line = ','.join([r['data'] for r in row]) + '\n'
-                f.write(line)
 
     def get_view_data_item(self, row, column, header=False):
         """call before function _calc_widths
         """
-        if header:
-            item = self._header[column]
-        else:
-            item = self._data[row][column]
+        item = self.get_item(row, column, header)
         width = self._columns_width[column] - item['MB']
         align = AlignSymbol.get(item['align'])
-        text = self.get_item_text(item)
-        view = '{:{align}{width}}'.format(text, align=align, width=width)
+        text = self.get_item_text(row, column, header)
+        view = u'{:{align}{width}}'.format(text, align=align, width=width)
         return view
 
-    def rst_table(self, style=None):
-        """style:
-        nosep: no separater
+    def to_rst(self, style=None):
+        """two styles: False or True
         """
         t = []
         widths = self._calc_widths()
-        if style == 'nosep':
+        if style:
             v_separator = ' '
             c_separator = ' '
             th_s = []
@@ -179,7 +190,7 @@ class MarkupTable(object):
             th_s.append(c_separator)
         # header
         if self._header:
-            if style == 'nosep':
+            if style:
                 t.append(''.join(th_s))
                 tr = []
             else:
@@ -193,13 +204,13 @@ class MarkupTable(object):
             t.append(''.join(tr))
             t.append(''.join(th_s))
         else:
-            if style == 'nosep':
+            if style:
                 t.append(''.join(th_s))
             else:
                 t.append(''.join(tr_s))
         # data
         for row in range(self.row_count()):
-            if style == 'nosep':
+            if style:
                 tr = []
             else:
                 tr = [v_separator]
@@ -209,8 +220,54 @@ class MarkupTable(object):
                 tr.append(self._right_padding)
                 tr.append(v_separator)
             t.append(''.join(tr))
-            if style != 'nosep':
+            if not style:
                 t.append(''.join(tr_s))
-        if style == 'nosep':
+        if style:
             t.append(''.join(th_s))
         return '\n'.join(t) + '\n'
+
+    def to_md(self):
+        if not self._header:
+            return 'Markdown Table must have a Header.'
+        t = []
+        widths = self._calc_widths()
+        v_separator = '|'
+        th_s = [v_separator]
+        for w in widths:
+            th_s.append('-' * (
+                len(self._left_padding) + w + len(self._right_padding)))
+            th_s.append(v_separator)
+        # header
+        tr = [v_separator]
+        for col in range(self.column_count()):
+            tr.append(self._left_padding)
+            tr.append(self.get_view_data_item(0, col, header=True))
+            tr.append(self._right_padding)
+            tr.append(v_separator)
+        t.append(''.join(tr))
+        t.append(''.join(th_s))
+        # data
+        for row in range(self.row_count()):
+            tr = [v_separator]
+            for column in range(self.column_count()):
+                tr.append(self._left_padding)
+                tr.append(self.get_view_data_item(row, column))
+                tr.append(self._right_padding)
+                tr.append(v_separator)
+            t.append(''.join(tr))
+        return '\n'.join(t) + '\n'
+
+    def to_csv(self, filename):
+        with open(filename, 'wt', newline='') as f:
+            writer = csv.writer(
+                f, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            if self._header:
+                row_data = []
+                for column in range(self.column_count()):
+                    row_data.append(self.get_item_text(0, column, header=True))
+                writer.writerow(row_data)
+            for row in range(self.row_count()):
+                row_data = []
+                for column in range(self.column_count()):
+                    row_data.append(self.get_item_text(row, column))
+                writer.writerow(row_data)
