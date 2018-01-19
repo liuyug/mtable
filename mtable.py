@@ -4,6 +4,9 @@
 import sys
 import csv
 
+from bs4 import BeautifulSoup
+import chardet
+
 
 AlignSymbol = {
     'left': '<',
@@ -24,11 +27,14 @@ CjkRange = (  # UTF-8
 class MarkupTable(object):
     _header = None
     _data = None
+    _columns_width = None
     _left_padding = ' '
     _right_padding = ' '
     _null_char = '--'
 
     def __init__(self):
+        self._header = []
+        self._data = []
         self._columns_width = []
 
     def __repr__(self):
@@ -37,8 +43,10 @@ class MarkupTable(object):
         )
 
     def set_data(self, data, header=None, encoding=None):
+        """header = ['title1', 'title2', ...]
+        data = [['value1', 'value2', ...], ...]
+        """
         if header:
-            self._header = []
             for h in header:
                 self._header.append({
                     'data': self.decode(h, encoding),
@@ -46,7 +54,6 @@ class MarkupTable(object):
                     'align': 'center',
                     'MB': 0,
                 })
-        self._data = []
         for dd in data:
             row = []
             for d in dd:
@@ -59,11 +66,65 @@ class MarkupTable(object):
             self._data.append(row)
         self._columns_width = [0] * self.column_count()
 
+    def set_dict_data(self, data, header=None, encoding=None):
+        """header = ['key1', 'key2', ...]
+        data = [{'key1': ,'value1', 'key2': 'value2', ...}, ...]
+        """
+        if not header:
+            header = list(data[0].keys())
+        for h in header:
+            self._header.append({
+                'data': self.decode(h, encoding),
+                'format': lambda x: '%s' % x,
+                'align': 'center',
+                'MB': 0,
+            })
+        for dd in data:
+            row = []
+            for h in header:
+                row.append({
+                    'data': self.decode(dd[h], encoding),
+                    'format': lambda x: '%s' % x,
+                    'align': 'left',
+                    'MB': 0,
+                })
+            self._data.append(row)
+        self._columns_width = [0] * self.column_count()
+
+    def feed_header(self, header, encoding=None):
+        for h in header:
+            self._header.append({
+                'data': self.decode(h, encoding),
+                'format': lambda x: '%s' % x,
+                'align': 'center',
+                'MB': 0,
+            })
+
+    def feed(self, data, encoding=None):
+        for dd in data:
+            row = []
+            for d in dd:
+                row.append({
+                    'data': self.decode(d, encoding),
+                    'format': lambda x: '%s' % x,
+                    'align': 'left',
+                    'MB': 0,
+                })
+            self._data.append(row)
+
+    def feed_done(self):
+        self._columns_width = [0] * self.column_count()
+
+    def clearall(self):
+        self._header = []
+        self._data = []
+        self._columns_width = []
+
     def row_count(self):
         return len(self._data)
 
     def column_count(self):
-        return len(self._data[0])
+        return len(self._data[0]) if self._data else 0
 
     def decode(self, value, encoding=None):
         if not encoding or not isinstance(value, str):
@@ -84,13 +145,13 @@ class MarkupTable(object):
                 item = self.get_item(0, column, header=True)
                 mb = self.cjk_count(self.get_item_text(0, column, header=True))
                 self._columns_width[column] = \
-                    self.get_item_text_length(0, column, header=True) + mb
+                    len(self.get_item_text(0, column, header=True)) + mb
                 item['MB'] = mb
             # data
             for row in range(self.row_count()):
                 item = self.get_item(row, column)
                 mb = self.cjk_count(self.get_item_text(row, column))
-                w = self.get_item_text_length(row, column) + mb
+                w = len(self.get_item_text(row, column)) + mb
                 self._columns_width[column] = max(w, self._columns_width[column])
                 item['MB'] = mb
         return self._columns_width
@@ -119,10 +180,6 @@ class MarkupTable(object):
         else:
             text = item['format'](value)
         return text
-
-    def get_item_text_length(self, row, column, header=False):
-        text = self.get_item_text(row, column, header)
-        return len(text)
 
     def set_align(self, align, rows=None, columns=None):
         """align: left, right, center
@@ -165,6 +222,47 @@ class MarkupTable(object):
         text = self.get_item_text(row, column, header)
         view = u'{:{align}{width}}'.format(text, align=align, width=width)
         return view
+
+    @staticmethod
+    def from_csv(filename, header=True):
+        mt = MarkupTable()
+        with open(filename, 'rb') as f:
+            encoding = chardet.detect(f.read(4096)).get('encoding')
+            if not encoding or encoding == 'ascii':
+                encoding = 'utf-8'
+        with open(filename, 'rt', encoding=encoding, newline='') as f:
+            reader = csv.reader(f)
+            if header:
+                mt.feed_header(reader.__next__())
+            for row in reader:
+                mt.feed([row])
+        mt.feed_done()
+        return mt
+
+    @staticmethod
+    def from_html(filename):
+        with open(filename, 'rb') as f:
+            encoding = chardet.detect(f.read(4096)).get('encoding')
+            if not encoding or encoding == 'ascii':
+                encoding = 'utf-8'
+        tables = []
+        with open(filename, 'rt', encoding=encoding, newline='') as f:
+            soup = BeautifulSoup(f.read(), 'html5lib')
+            for table in soup.find_all('table'):
+                mt = MarkupTable()
+                for tr in table.find_all('tr'):
+                    row = []
+                    if tr.find('th'):
+                        for th in tr.find_all('th'):
+                            row.append(th.string)
+                        mt.feed_header(row)
+                    else:
+                        for td in tr.find_all('td'):
+                            row.append(td.string)
+                        mt.feed([row])
+                mt.feed_done()
+                tables.append(mt)
+        return tables
 
     def to_rst(self, style=None):
         """two styles: False or True
@@ -257,8 +355,40 @@ class MarkupTable(object):
             t.append(''.join(tr))
         return '\n'.join(t) + '\n'
 
+    def to_html(self, filename=None, full=False, encoding=None):
+        html = []
+        encoding = encoding or 'UTF-8'
+        if full:
+            html.append('''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="%s" />
+<title>Markup Table</title>
+</head>
+<body>''' % encoding)
+        html.append('<table>')
+        # header
+        if self._header:
+            html.append('<tr>')
+            for column in range(self.column_count()):
+                html.append('<th>%s</th>' % self.get_item_text(0, column, header=True))
+            html.append('</tr>')
+        # data
+        for row in range(self.row_count()):
+            html.append('<tr>')
+            for column in range(self.column_count()):
+                html.append('<td>%s</td>' % self.get_item_text(row, column))
+            html.append('</tr>')
+        html.append('</table>')
+        if full:
+            html.append('</body></html>')
+        if filename:
+            with open(filename, 'w', encoding=encoding) as f:
+                f.write('\n'.join(html) + '\n')
+        return '\n'.join(html) + '\n'
+
     def to_csv(self, filename):
-        with open(filename, 'wt', newline='') as f:
+        with open(filename, 'wt', encoding='utf-8-sig', newline='') as f:
             writer = csv.writer(
                 f, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             if self._header:

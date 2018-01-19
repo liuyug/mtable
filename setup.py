@@ -15,5 +15,7 @@ setup(
     license='BSD',
     author='Yugang LIU',
     author_email='liuyug@gmail.com',
-    py_modules=['mtable']
+    python_requires='>=3',
+    py_modules=['mtable'],
+    install_requires=['chardet'],
 )

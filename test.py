@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding:utf-8 -*-
 
 import mtable
@@ -46,6 +46,27 @@ csv table
 output test.csv
     ''')
     table.to_csv('test.csv')
+    print('''
+csv table
+---------
+read test.csv
+    ''')
+    table = mtable.MarkupTable.from_csv('test.csv')
+    print(table.to_rst())
+
+    print('''
+html table
+----------
+output test.html
+    ''')
+    table.to_html('test.html', full=True)
+    print('''
+html table
+----------
+read test.html
+    ''')
+    for table in mtable.MarkupTable.from_html('test.html'):
+        print(table.to_rst())
 
 
 if __name__ == '__main__':
