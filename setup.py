@@ -7,6 +7,15 @@ from setuptools import setup
 VERSION = '0.1.0'
 
 
+requirements = []
+with open('requirements.txt') as f:
+    for line in f.readlines():
+        line.strip()
+        if line.startswith('#'):
+            continue
+        requirements.append(line)
+
+
 setup(
     name='mtable',
     version=VERSION,
@@ -17,5 +26,5 @@ setup(
     author_email='liuyug@gmail.com',
     python_requires='>=3',
     py_modules=['mtable'],
-    install_requires=['chardet'],
+    install_requires=requirements,
 )
