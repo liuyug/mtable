@@ -238,25 +238,38 @@ class MarkupTable(object):
 
     @staticmethod
     def from_html(fobj):
+        def strip_text(text):
+            text = text.replace('\r\n', ' ')
+            text = text.replace('\r', ' ')
+            text = text.replace('\n', ' ')
+            text = text.replace('\t', ' ')
+            while '  ' in text:
+                text = text.replace('  ', ' ')
+            return text
+
         tables = []
         soup = BeautifulSoup(fobj.read(), 'html5lib')
         for table in soup.find_all('table'):
             mt = MarkupTable()
+            column_count = 0
             for tr in table.find_all('tr'):
                 row = []
                 if not mt._header and tr.find('th'):
                     for th in tr.find_all('th'):
-                        text = ' '.join(th.stripped_strings)
-                        text = text.replace('\n', ' ')
+                        text = strip_text(' '.join(th.stripped_strings))
                         row.append(text)
                         if th.get('colspan'):
                             row.extend([' '] * (int(th.get('colspan')) - 1))
                     mt.feed_header(row)
+                    column_count = len(row)
                 elif tr.find('td'):
                     for td in tr.find_all('td'):
-                        text = ' '.join(td.stripped_strings)
-                        text = text.replace('\n', ' ')
+                        text = strip_text(' '.join(td.stripped_strings))
                         row.append(text)
+                    if column_count == 0:
+                        column_count = len(row)
+                    diff = column_count - len(row)
+                    row.extend([None] * diff)
                     mt.feed([row])
             mt.feed_done()
             tables.append(mt)
