@@ -125,6 +125,9 @@ class MarkupTable(object):
     def column_count(self):
         return len(self._data[0]) if self._data else 0
 
+    def is_empty(self):
+        return len(self._header) == 0 and self.column_count() == 0
+
     def decode(self, value, encoding=None):
         if not encoding or not isinstance(value, str):
             return value
@@ -241,13 +244,15 @@ class MarkupTable(object):
             mt = MarkupTable()
             for tr in table.find_all('tr'):
                 row = []
-                if tr.find('th'):
+                if not mt._header and tr.find('th'):
                     for th in tr.find_all('th'):
                         text = ' '.join(th.stripped_strings)
                         text = text.replace('\n', ' ')
                         row.append(text)
+                        if th.get('colspan'):
+                            row.extend([' '] * (int(th.get('colspan')) - 1))
                     mt.feed_header(row)
-                else:
+                elif tr.find('td'):
                     for td in tr.find_all('td'):
                         text = ' '.join(td.stripped_strings)
                         text = text.replace('\n', ' ')
@@ -260,6 +265,8 @@ class MarkupTable(object):
     def to_rst(self, style=None):
         """two styles: False or True
         """
+        if self.is_empty():
+            return ''
         t = []
         widths = self._calc_widths()
         if style:
@@ -318,6 +325,8 @@ class MarkupTable(object):
         return '\n'.join(t) + '\n'
 
     def to_md(self):
+        if self.is_empty():
+            return ''
         if not self._header:
             return 'Markdown Table must have a Header.'
         t = []
@@ -349,6 +358,8 @@ class MarkupTable(object):
         return '\n'.join(t) + '\n'
 
     def to_html(self, filename=None, full=False, encoding=None):
+        if self.is_empty():
+            return ''
         html = []
         encoding = encoding or 'UTF-8'
         if full:
@@ -378,9 +389,12 @@ class MarkupTable(object):
         if filename:
             with open(filename, 'w', encoding=encoding) as f:
                 f.write('\n'.join(html) + '\n')
-        return '\n'.join(html) + '\n'
+        else:
+            print('\n'.join(html) + '\n')
 
     def to_csv(self, filename):
+        if self.is_empty():
+            return ''
         with open(filename, 'wt', encoding='utf-8-sig', newline='') as f:
             writer = csv.writer(
                 f, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
