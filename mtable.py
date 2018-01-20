@@ -5,7 +5,6 @@ import sys
 import csv
 
 from bs4 import BeautifulSoup
-import chardet
 
 
 AlignSymbol = {
@@ -224,44 +223,38 @@ class MarkupTable(object):
         return view
 
     @staticmethod
-    def from_csv(filename, header=True):
+    def from_csv(fobj, header=True):
         mt = MarkupTable()
-        with open(filename, 'rb') as f:
-            encoding = chardet.detect(f.read(4096)).get('encoding')
-            if not encoding or encoding == 'ascii':
-                encoding = 'utf-8'
-        with open(filename, 'rt', encoding=encoding, newline='') as f:
-            reader = csv.reader(f)
-            if header:
-                mt.feed_header(reader.__next__())
-            for row in reader:
-                mt.feed([row])
+        reader = csv.reader(fobj)
+        if header:
+            mt.feed_header(reader.__next__())
+        for row in reader:
+            mt.feed([row])
         mt.feed_done()
         return mt
 
     @staticmethod
-    def from_html(filename):
-        with open(filename, 'rb') as f:
-            encoding = chardet.detect(f.read(4096)).get('encoding')
-            if not encoding or encoding == 'ascii':
-                encoding = 'utf-8'
+    def from_html(fobj):
         tables = []
-        with open(filename, 'rt', encoding=encoding, newline='') as f:
-            soup = BeautifulSoup(f.read(), 'html5lib')
-            for table in soup.find_all('table'):
-                mt = MarkupTable()
-                for tr in table.find_all('tr'):
-                    row = []
-                    if tr.find('th'):
-                        for th in tr.find_all('th'):
-                            row.append(th.string)
-                        mt.feed_header(row)
-                    else:
-                        for td in tr.find_all('td'):
-                            row.append(td.string)
-                        mt.feed([row])
-                mt.feed_done()
-                tables.append(mt)
+        soup = BeautifulSoup(fobj.read(), 'html5lib')
+        for table in soup.find_all('table'):
+            mt = MarkupTable()
+            for tr in table.find_all('tr'):
+                row = []
+                if tr.find('th'):
+                    for th in tr.find_all('th'):
+                        text = ' '.join(th.stripped_strings)
+                        text = text.replace('\n', ' ')
+                        row.append(text)
+                    mt.feed_header(row)
+                else:
+                    for td in tr.find_all('td'):
+                        text = ' '.join(td.stripped_strings)
+                        text = text.replace('\n', ' ')
+                        row.append(text)
+                    mt.feed([row])
+            mt.feed_done()
+            tables.append(mt)
         return tables
 
     def to_rst(self, style=None):

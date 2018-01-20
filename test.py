@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- encoding:utf-8 -*-
 
+import chardet
 import mtable
 
 
@@ -51,8 +52,14 @@ csv table
 ---------
 read test.csv
     ''')
-    table = mtable.MarkupTable.from_csv('test.csv')
-    print(table.to_rst())
+    csv_file = 'test.csv'
+    with open(csv_file, 'rb') as f:
+        encoding = chardet.detect(f.read(4096)).get('encoding')
+        if not encoding or encoding == 'ascii':
+            encoding = 'utf-8'
+    with open(csv_file, 'rt', encoding=encoding, newline='') as f:
+        table = mtable.MarkupTable.from_csv(f)
+        print(table.to_rst())
 
     print('''
 html table
@@ -65,7 +72,24 @@ html table
 ----------
 read test.html
     ''')
-    for table in mtable.MarkupTable.from_html('test.html'):
+    html_file = 'test.html'
+    with open(html_file, 'rb') as f:
+        encoding = chardet.detect(f.read(4096)).get('encoding')
+        if not encoding or encoding == 'ascii':
+            encoding = 'utf-8'
+    with open(html_file, 'rt', encoding=encoding, newline='') as f:
+        tables = mtable.MarkupTable.from_html(f)
+    for table in tables:
+        print(table.to_rst())
+    # wget https://specifications.freedesktop.org/icon-naming-spec/latest/ar01s04.html
+    html_file = 'ar01s04.html'
+    with open(html_file, 'rb') as f:
+        encoding = chardet.detect(f.read(4096)).get('encoding')
+        if not encoding or encoding == 'ascii':
+            encoding = 'utf-8'
+    with open(html_file, 'rt', encoding=encoding, newline='') as f:
+        tables = mtable.MarkupTable.from_html(f)
+    for table in tables:
         print(table.to_rst())
 
 
