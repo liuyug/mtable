@@ -81,17 +81,6 @@ read test.html
         tables = mtable.MarkupTable.from_html(f)
     for table in tables:
         print(table.to_rst())
-    # wget https://specifications.freedesktop.org/icon-naming-spec/latest/ar01s04.html
-    html_file = 'ar01s04.html'
-    with open(html_file, 'rb') as f:
-        encoding = chardet.detect(f.read(4096)).get('encoding')
-        if not encoding or encoding == 'ascii':
-            encoding = 'utf-8'
-    with open(html_file, 'rt', encoding=encoding, newline='') as f:
-        tables = mtable.MarkupTable.from_html(f)
-    for table in tables:
-        print(table.to_rst())
-
 
 if __name__ == '__main__':
     test_rst()
