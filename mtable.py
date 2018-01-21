@@ -349,8 +349,7 @@ class MarkupTable(object):
         v_separator = '|'
         th_s = [v_separator]
         for w in widths:
-            th_s.append('-' * (
-                len(self._left_padding) + w + len(self._right_padding)))
+            th_s.append(self._left_padding + '-' * w + self._right_padding)
             th_s.append(v_separator)
         # header
         tr = [v_separator]
