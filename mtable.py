@@ -266,6 +266,8 @@ class MarkupTable(object):
                     for td in tr.find_all('td'):
                         text = strip_text(' '.join(td.stripped_strings))
                         row.append(text)
+                        if td.get('colspan'):
+                            row.extend([' '] * (int(td.get('colspan')) - 1))
                     if column_count == 0:
                         column_count = len(row)
                     diff = column_count - len(row)
