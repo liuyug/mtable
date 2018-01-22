@@ -267,12 +267,12 @@ class MarkupTable(object):
         tokens = [
             ('table1',
              re.compile(
-                 r'''\n( *)\+-[\-+]{3,}((\r\n?|\n)\1[\|+].+)+\1[\-+]{3,}(\r\n?|\n)''',
+                 r'''((\r\n?|\n)|^)( *)\+-[\-+]{3,}((\r\n?|\n)\3[\|+].+)+\3[\-+]{3,}(\r\n?|\n|$)''',
                  re.UNICODE),
              ),
             ('table2',
              re.compile(
-                 r'''\n( *)={2,} +=[= ]+((\r\n?|\n)\1.{4,})+\1={2,} [= ]+(\r\n?|\n)''',
+                 r'''((\r\n?|\n)|^)( *)={2,} +=[= ]+((\r\n?|\n)\3.{4,})+\3={2,} [= ]+(\r\n?|\n$)''',
                  re.UNICODE),
              ),
         ]
@@ -296,16 +296,17 @@ class MarkupTable(object):
                 if not line:
                     continue
                 data.append([item.strip() for item in line[1:-1].split('|')])
-                if data[-1][0].startswith('--'):
-                    data.pop(-1)
-                    header = data.pop(-1)
+
+            if data[1][0].startswith('--'):
+                header = data.pop(0)
+                data.pop(0)
 
             mt = MarkupTable()
             mt.set_data(data, header)
             return mt
 
         tok = re.compile(
-            r'''\n( *)\|.+\| *((\r\n?|\n)\1\|.+\| *)+(\r\n?|\n)''',
+            r'''((\r\n?|\n)|^)( *)\|.+\| *(\r\n?|\n)\3\|[ \-\|]+ *((\r\n?|\n)\3\|.+\| *)+(\r\n?|\n|$)''',
             re.UNICODE)
         tables = []
         mo_list = tok.finditer(md_text)
@@ -338,7 +339,7 @@ class MarkupTable(object):
         for row in data:
             diff = column - len(row)
             row.extend([''] * diff)
-            if row[0].startswith('--'):
+            if row[0].startswith('--') or row[0].startswith('=='):
                 header = True
         if header:
             header = data.pop(0)
@@ -465,8 +466,6 @@ class MarkupTable(object):
     def to_md(self):
         if self.is_empty():
             return ''
-        if not self._header:
-            return 'Markdown Table must have a Header.'
         t = []
         widths = self._calc_widths()
         v_separator = '|'
@@ -475,14 +474,15 @@ class MarkupTable(object):
             th_s.append(self._left_padding + '-' * w + self._right_padding)
             th_s.append(v_separator)
         # header
-        tr = [v_separator]
-        for col in range(self.column_count()):
-            tr.append(self._left_padding)
-            tr.append(self.get_view_data_item(0, col, header=True))
-            tr.append(self._right_padding)
-            tr.append(v_separator)
-        t.append(''.join(tr))
-        t.append(''.join(th_s))
+        if self._header:
+            tr = [v_separator]
+            for col in range(self.column_count()):
+                tr.append(self._left_padding)
+                tr.append(self.get_view_data_item(0, col, header=True))
+                tr.append(self._right_padding)
+                tr.append(v_separator)
+            t.append(''.join(tr))
+            t.append(''.join(th_s))
         # data
         for row in range(self.row_count()):
             tr = [v_separator]
