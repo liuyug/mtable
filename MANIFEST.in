@@ -1,5 +1,7 @@
-setup.py
-mtable.py
-test.py
-README.rst
-requirements.txt
+include setup.py
+include mtable.py
+include test.py
+include test.rst
+include test.md
+include README.rst
+include requirements.txt
