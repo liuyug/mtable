@@ -315,6 +315,40 @@ class MarkupTable(object):
         return tables
 
     @staticmethod
+    def from_txt(text):
+        """+ '|' as table column separator
+        + may miss end column
+        + null item
+        """
+        column = 0
+        data = []
+        for line in text.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            if not line.startswith('|'):
+                continue
+            line = line.strip('|')
+            row = [item.strip() for item in line.split('|')]
+            column = max(len(row), column)
+            data.append(row)
+
+        # format data
+        header = None
+        for row in data:
+            diff = column - len(row)
+            row.extend([''] * diff)
+            if row[0].startswith('--'):
+                header = True
+        if header:
+            header = data.pop(0)
+            data.pop(0)
+
+        mt = MarkupTable()
+        mt.set_data(data, header)
+        return mt
+
+    @staticmethod
     def from_csv(fobj, header=True):
         mt = MarkupTable()
         reader = csv.reader(fobj)

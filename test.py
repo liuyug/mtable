@@ -149,14 +149,29 @@ from md
         print(table.to_rst())
 
 
+def test_from_txt():
+    print('''
+from text
+---------''')
+    txt_file = 'test.txt'
+    with open(txt_file, 'rb') as f:
+        encoding = chardet.detect(f.read(4096)).get('encoding')
+        if not encoding or encoding == 'ascii':
+            encoding = 'utf-8'
+    with open(txt_file, 'rt', encoding=encoding, newline='') as f:
+        table = mtable.MarkupTable.from_txt(f.read())
+        print(table.to_rst())
+
+
 if __name__ == '__main__':
-    test_rst()
-    test_rst_noheader()
-    test_md()
-    test_html()
-    test_csv()
-    test_from_html()
-    test_from_html2()
-    test_from_csv()
-    test_from_rst()
-    test_from_md()
+    # test_rst()
+    # test_rst_noheader()
+    # test_md()
+    # test_html()
+    # test_csv()
+    # test_from_html()
+    # test_from_html2()
+    # test_from_csv()
+    # test_from_rst()
+    # test_from_md()
+    test_from_txt()
