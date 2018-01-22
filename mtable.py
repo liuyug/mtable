@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding:utf-8 -*-
 
+import re
 import sys
 import csv
 
@@ -226,6 +227,94 @@ class MarkupTable(object):
         return view
 
     @staticmethod
+    def from_rst(rst_text, header=True):
+        def parse_table1(text):
+            header = None
+            data = []
+            for line in text.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith('+-'):
+                    continue
+                if line.startswith('+='):
+                    header = data.pop(-1)
+                    continue
+                data.append([item.strip() for item in line[1:-2].split('|')])
+            mt = MarkupTable()
+            mt.set_data(data, header)
+            return mt
+
+        def parse_table2(text):
+            header = None
+            data = []
+            for line in text.split('\n'):
+                line = line.strip()
+                while '  ' in line:
+                    line = line.replace('  ', ' ')
+                if not line:
+                    continue
+                if line.startswith('=='):
+                    if data:
+                        header = data.pop(-1)
+                    continue
+                data.append(line.split(' '))
+
+            mt = MarkupTable()
+            mt.set_data(data, header)
+            return mt
+
+        tokens = [
+            ('table1',
+             re.compile(
+                 r'''\n( *)\+-[\-+]{3,}((\r\n?|\n)\1[\|+].+)+\1[\-+]{3,}(\r\n?|\n)''',
+                 re.UNICODE),
+             ),
+            ('table2',
+             re.compile(
+                 r'''\n( *)={2,} +=[= ]+((\r\n?|\n)\1.{4,})+\1={2,} [= ]+(\r\n?|\n)''',
+                 re.UNICODE),
+             ),
+        ]
+        tables = []
+        for key, tok in tokens:
+            mo_list = tok.finditer(rst_text)
+            for mo in mo_list:
+                mt = eval('parse_%s' % key)(mo.group(0))
+                tables.append(mt)
+        return tables
+
+    @staticmethod
+    def from_md(md_text):
+        def parse_table(text):
+            header = None
+            data = []
+            for line in text.split('\n'):
+                line = line.strip()
+                while '  ' in line:
+                    line = line.replace('  ', ' ')
+                if not line:
+                    continue
+                data.append([item.strip() for item in line[1:-1].split('|')])
+                if data[-1][0].startswith('--'):
+                    data.pop(-1)
+                    header = data.pop(-1)
+
+            mt = MarkupTable()
+            mt.set_data(data, header)
+            return mt
+
+        tok = re.compile(
+            r'''\n( *)\|.+\| *((\r\n?|\n)\1\|.+\| *)+(\r\n?|\n)''',
+            re.UNICODE)
+        tables = []
+        mo_list = tok.finditer(md_text)
+        for mo in mo_list:
+            mt = parse_table(mo.group(0))
+            tables.append(mt)
+        return tables
+
+    @staticmethod
     def from_csv(fobj, header=True):
         mt = MarkupTable()
         reader = csv.reader(fobj)
@@ -237,7 +326,7 @@ class MarkupTable(object):
         return mt
 
     @staticmethod
-    def from_html(fobj):
+    def from_html(html_text):
         def strip_text(text):
             text = text.replace('\r\n', ' ')
             text = text.replace('\r', ' ')
@@ -248,7 +337,7 @@ class MarkupTable(object):
             return text
 
         tables = []
-        soup = BeautifulSoup(fobj.read(), 'html5lib')
+        soup = BeautifulSoup(html_text, 'html5lib')
         for table in soup.find_all('table'):
             mt = MarkupTable()
             column_count = 0
