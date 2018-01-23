@@ -129,6 +129,16 @@ class MarkupTable(object):
     def is_empty(self):
         return len(self._header) == 0 and self.column_count() == 0
 
+    def is_invalid(self):
+        cols = self.column_count()
+        if self._header:
+            if len(self._header) != cols:
+                return True
+        for row in self._data:
+            if len(row) != cols:
+                return True
+        return False
+
     def decode(self, value, encoding=None):
         if not encoding or not isinstance(value, str):
             return value
@@ -240,7 +250,9 @@ class MarkupTable(object):
                 if line.startswith('+='):
                     header = data.pop(-1)
                     continue
-                data.append([item.strip() for item in line[1:-2].split('|')])
+                line = line.strip('|')
+                data.append([item.strip() for item in line.split('|')])
+
             mt = MarkupTable()
             mt.set_data(data, header)
             return mt
@@ -267,12 +279,12 @@ class MarkupTable(object):
         tokens = [
             ('table1',
              re.compile(
-                 r'''((\r\n?|\n)|^)( *)\+-[\-+]{3,}((\r\n?|\n)\3[\|+].+)+\3[\-+]{3,}(\r\n?|\n|$)''',
+                 r'''(\r\n?|\n|^)( *)\+-[\-+]{3,}((\r\n?|\n)\2[\|+].+)+\2[\-+]{3,}(\r\n?|\n|$)''',
                  re.UNICODE),
              ),
             ('table2',
              re.compile(
-                 r'''((\r\n?|\n)|^)( *)={2,} +=[= ]+((\r\n?|\n)\3.{4,})+\3={2,} [= ]+(\r\n?|\n$)''',
+                 r'''(\r\n?|\n|^)( *)={2,} +=[= ]+((\r\n?|\n)\2.{4,})+\2={2,} [= ]+(\r\n?|\n$)''',
                  re.UNICODE),
              ),
         ]
@@ -295,7 +307,8 @@ class MarkupTable(object):
                     line = line.replace('  ', ' ')
                 if not line:
                     continue
-                data.append([item.strip() for item in line[1:-1].split('|')])
+                line = line.strip('|')
+                data.append([item.strip() for item in line.split('|')])
 
             if data[1][0].startswith('--'):
                 header = data.pop(0)
@@ -306,7 +319,7 @@ class MarkupTable(object):
             return mt
 
         tok = re.compile(
-            r'''((\r\n?|\n)|^)( *)\|.+\| *(\r\n?|\n)\3\|[ \-\|]+ *((\r\n?|\n)\3\|.+\| *)+(\r\n?|\n|$)''',
+            r'''(\r\n?|\n|^)( *)\|.+\| *(\r\n?|\n)\2\|[ \-\|]+ *((\r\n?|\n)\2\|.+\| *)+(\r\n?|\n|$)''',
             re.UNICODE)
         tables = []
         mo_list = tok.finditer(md_text)
@@ -322,28 +335,36 @@ class MarkupTable(object):
         + null item
         """
         column = 0
+        header = None
         data = []
         for line in text.split('\n'):
             line = line.strip()
             if not line:
+                continue
+            if line.startswith('+'):
+                line = line.strip('+')
+                row = [item.strip() for item in line.split('+')]
+                if row[0].startswith('--') or row[0].startswith('=='):
+                    if data and not header:
+                        header = True
                 continue
             if not line.startswith('|'):
                 continue
             line = line.strip('|')
             row = [item.strip() for item in line.split('|')]
             column = max(len(row), column)
-            data.append(row)
+            if row[0].startswith('--') or row[0].startswith('=='):
+                if data and not header:
+                    header = True
+            else:
+                data.append(row)
 
-        # format data
-        header = None
+        # fix data
         for row in data:
             diff = column - len(row)
             row.extend([''] * diff)
-            if row[0].startswith('--') or row[0].startswith('=='):
-                header = True
         if header:
             header = data.pop(0)
-            data.pop(0)
 
         mt = MarkupTable()
         mt.set_data(data, header)
