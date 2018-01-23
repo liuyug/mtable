@@ -68,6 +68,17 @@ output test.html
     table.to_html('test.html', full=True)
 
 
+def test_json():
+    table = mtable.MarkupTable()
+    table.set_data(data, header, encoding='utf8')
+    print('''
+json table
+----------
+output test.json
+    ''')
+    table.to_json('test.json')
+
+
 def test_from_csv():
     print('''
 csv table
@@ -169,6 +180,7 @@ if __name__ == '__main__':
     test_md()
     test_html()
     test_csv()
+    test_json()
     test_from_html()
     # test_from_html2()
     test_from_csv()
