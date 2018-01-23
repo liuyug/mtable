@@ -164,14 +164,14 @@ from text
 
 
 if __name__ == '__main__':
-    # test_rst()
-    # test_rst_noheader()
-    # test_md()
-    # test_html()
-    # test_csv()
-    # test_from_html()
+    test_rst()
+    test_rst_noheader()
+    test_md()
+    test_html()
+    test_csv()
+    test_from_html()
     # test_from_html2()
-    # test_from_csv()
+    test_from_csv()
     test_from_rst()
     test_from_md()
     test_from_txt()
