@@ -84,7 +84,7 @@ class MarkupTable(object):
             row = []
             for h in header:
                 row.append({
-                    'data': self.decode(dd[h], encoding),
+                    'data': self.decode(dd.get(h), encoding),
                     'format': lambda x: '%s' % x,
                     'align': 'left',
                     'MB': 0,
