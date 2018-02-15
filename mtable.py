@@ -330,11 +330,12 @@ class MarkupTable(object):
         return tables
 
     @staticmethod
-    def from_txt(text):
+    def from_txt(text, delimeter=None):
         """+ '|' as table column separator
         + may miss end column
         + null item
         """
+        delimeter = delimeter or '|'
         column = 0
         header = None
         data = []
@@ -349,10 +350,8 @@ class MarkupTable(object):
                     if data and not header:
                         header = True
                 continue
-            if not line.startswith('|'):
-                continue
-            line = line.strip('|')
-            row = [item.strip() for item in line.split('|')]
+            line = line.strip(delimeter)
+            row = [item.strip() for item in line.split(delimeter)]
             column = max(len(row), column)
             if row[0].startswith('--') or row[0].startswith('=='):
                 if data and not header:
@@ -550,6 +549,22 @@ class MarkupTable(object):
                 f.write('\n'.join(html) + '\n')
         else:
             print('\n'.join(html) + '\n')
+
+    def to_tab(self):
+        if self.is_empty():
+            return ''
+        data = []
+        if self._header:
+            row_data = []
+            for column in range(self.column_count()):
+                row_data.append(self.get_item_text(0, column, header=True))
+            data.append('\t'.join(row_data))
+        for row in range(self.row_count()):
+            row_data = []
+            for column in range(self.column_count()):
+                row_data.append(self.get_item_text(row, column))
+            data.append('\t'.join(row_data))
+        return '\n'.join(data)
 
     def to_csv(self, filename):
         if self.is_empty():
