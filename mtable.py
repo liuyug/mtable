@@ -425,7 +425,7 @@ class MarkupTable(object):
     def to_rst(self, style=None):
         """two styles: False or True
         """
-        if self.is_empty():
+        if self.is_empty() or self.is_invalid():
             return ''
         t = []
         widths = self._calc_widths()
@@ -485,7 +485,7 @@ class MarkupTable(object):
         return '\n'.join(t) + '\n'
 
     def to_md(self):
-        if self.is_empty():
+        if self.is_empty() or self.is_invalid():
             return ''
         t = []
         widths = self._calc_widths()
@@ -516,7 +516,7 @@ class MarkupTable(object):
         return '\n'.join(t) + '\n'
 
     def to_html(self, filename=None, full=False, encoding=None):
-        if self.is_empty():
+        if self.is_empty() or self.is_invalid():
             return ''
         html = []
         encoding = encoding or 'UTF-8'
@@ -551,7 +551,7 @@ class MarkupTable(object):
             print('\n'.join(html) + '\n')
 
     def to_tab(self):
-        if self.is_empty():
+        if self.is_empty() or self.is_invalid():
             return ''
         data = []
         if self._header:
@@ -567,7 +567,7 @@ class MarkupTable(object):
         return '\n'.join(data)
 
     def to_csv(self, filename):
-        if self.is_empty():
+        if self.is_empty() or self.is_invalid():
             return ''
         with open(filename, 'wt', encoding='utf-8-sig', newline='') as f:
             writer = csv.writer(
