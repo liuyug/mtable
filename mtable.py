@@ -68,14 +68,16 @@ class MarkupTable(object):
         self._columns_width = [0] * self.column_count()
 
     def set_dict_data(self, data, header=None, encoding=None):
-        """header = ['key1', 'key2', ...]
-        data = [{'key1': ,'value1', 'key2': 'value2', ...}, ...]
+        """header = [{'field': 'key1', 'title': ''}, {'field': 'key2', }...]
+        data = [{'key1': 'value1', 'key2': 'value2', ...}, ...]
         """
         if not header:
-            header = list(data[0].keys())
+            header = [{'field': k, 'title': k} for k in data[0]]
+        if not isinstance(header[0], dict):
+            header = [{'field': k, 'title': k} for k in header]
         for h in header:
             self._header.append({
-                'data': self.decode(h, encoding),
+                'data': self.decode(h['title'], encoding),
                 'format': lambda x: '%s' % x,
                 'align': 'center',
                 'MB': 0,
@@ -84,7 +86,7 @@ class MarkupTable(object):
             row = []
             for h in header:
                 row.append({
-                    'data': self.decode(dd.get(h), encoding),
+                    'data': self.decode(dd.get(h['field']), encoding),
                     'format': lambda x: '%s' % x,
                     'align': 'left',
                     'MB': 0,
