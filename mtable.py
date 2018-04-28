@@ -593,11 +593,19 @@ class MarkupTable(object):
                 header.append(self.get_data(0, x, header=True))
         dict_data['header'] = header
         data = []
-        for y in range(self.row_count()):
-            row = []
-            for x in range(self.column_count()):
-                row.append(self.get_data(y, x))
-            data.append(row)
+        if header:
+            for y in range(self.row_count()):
+                row = {}
+                for x in range(self.column_count()):
+                    row[header[x]] = self.get_data(y, x)
+                data.append(row)
+        else:
+            for y in range(self.row_count()):
+                row = []
+                for x in range(self.column_count()):
+                    row.append(self.get_data(y, x))
+                data.append(row)
+
         dict_data['data'] = data
         with open(filename, 'w') as f:
             json.dump(dict_data, f)
