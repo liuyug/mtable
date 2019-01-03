@@ -7,6 +7,7 @@ import csv
 import json
 
 from bs4 import BeautifulSoup
+from wcwidth import wcswidth
 
 
 AlignSymbol = {
@@ -160,14 +161,21 @@ class MarkupTable(object):
             if self._header:
                 item = self.get_item(0, column, header=True)
                 mb = self.cjk_count(self.get_item_text(0, column, header=True))
-                self._columns_width[column] = \
-                    len(self.get_item_text(0, column, header=True)) + mb
+                text = self.get_item_text(0, column, header=True)
+                if True:
+                    self._columns_width[column] = wcswidth(text)
+                else:
+                    self._columns_width[column] = len(text) + mb
                 item['MB'] = mb
             # data
             for row in range(self.row_count()):
                 item = self.get_item(row, column)
-                mb = self.cjk_count(self.get_item_text(row, column))
-                w = len(self.get_item_text(row, column)) + mb
+                text = self.get_item_text(row, column, header=False)
+                mb = self.cjk_count(text)
+                if True:
+                    w = wcswidth(text)
+                else:
+                    w = len(text) + mb
                 self._columns_width[column] = max(w, self._columns_width[column])
                 item['MB'] = mb
         return self._columns_width
@@ -230,7 +238,7 @@ class MarkupTable(object):
         return item.get(role)
 
     def get_view_data_item(self, row, column, header=False):
-        """call before function _calc_widths
+        """render cell item
         """
         item = self.get_item(row, column, header)
         width = self._columns_width[column] - item['MB']

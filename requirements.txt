@@ -1,2 +1,3 @@
 chardet
+wcwidth
 beautifulsoup4
