@@ -7,6 +7,9 @@ from setuptools import setup
 VERSION = '0.1.8'
 
 
+with open('README.rst') as f:
+    long_description = f.read()
+
 requirements = []
 with open('requirements.txt') as f:
     for line in f.readlines():
@@ -20,6 +23,7 @@ setup(
     name='mtable',
     version=VERSION,
     description='format data to reStructedText and Markup Table',
+    long_description=long_description,
     url='https://github.com/liuyug/mtable',
     license='BSD',
     author='Yugang LIU',
