@@ -95,6 +95,26 @@ class MarkupTable(object):
             self._data.append(row)
         self._columns_width = [0] * self.column_count()
 
+    def set_dataframe_data(self, df, encoding='utf-8'):
+        for h in df.columns:
+            self._header.append({
+                'data': self.decode(h, encoding),
+                'format': lambda x: '%s' % x,
+                'align': 'center',
+                'MB': 0,
+            })
+        for idx in df.index:
+            row = []
+            for h in df.columns:
+                row.append({
+                    'data': df.loc[idx, h],
+                    'format': lambda x: '%s' % x,
+                    'align': 'left',
+                    'MB': 0,
+                })
+            self._data.append(row)
+        self._columns_width = [0] * self.column_count()
+
     def feed_header(self, header, encoding=None):
         for h in header:
             self._header.append({
@@ -246,6 +266,24 @@ class MarkupTable(object):
         text = self.get_item_text(row, column, header)
         view = u'{:{align}{width}}'.format(text, align=align, width=width)
         return view
+
+    @staticmethod
+    def from_list(data, header=None):
+        mt = MarkupTable()
+        mt.set_data(data, header=header)
+        return mt
+
+    @staticmethod
+    def from_dict(data, header=None):
+        mt = MarkupTable()
+        mt.set_dict_data(data, header)
+        return mt
+
+    @staticmethod
+    def from_dataframe(df):
+        mt = MarkupTable()
+        mt.set_dataframe_data(df)
+        return mt
 
     @staticmethod
     def from_rst(rst_text, header=True):
@@ -617,3 +655,11 @@ class MarkupTable(object):
         dict_data['data'] = data
         with open(filename, 'w') as f:
             json.dump(dict_data, f)
+
+    def to_dataframe(self):
+        import pandas as pd
+        header = [h['data'] for h in self._header]
+        data = []
+        for dd in self._data:
+            data.append([d['data'] for d in dd])
+        return pd.DataFrame.from_records(data, columns=header)

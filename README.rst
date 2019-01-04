@@ -10,6 +10,7 @@ Output table
 + Markdown
 + html
 + csv
++ pandas.dataframe
 
 Read table from
 ---------------
@@ -17,3 +18,5 @@ Read table from
 + dict data
 + html
 + csv
++ rst
++ md
