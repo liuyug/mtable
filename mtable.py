@@ -77,21 +77,30 @@ class MarkupTable(object):
         if not isinstance(header[0], dict):
             header = [{'field': k, 'title': k} for k in header]
         for h in header:
-            self._header.append({
+            item = {
                 'data': self.decode(h['title'], encoding),
                 'format': lambda x: '%s' % x,
                 'align': 'center',
                 'MB': 0,
-            })
+            }
+            if 'field' in h:
+                item['field'] = h['field']
+            elif 'data' in h:
+                item['field'] = h['data']
+            self._header.append(item)
         for dd in data:
             row = []
             for h in header:
-                row.append({
-                    'data': self.decode(dd.get(h['field']), encoding),
+                item = {
                     'format': lambda x: '%s' % x,
                     'align': 'left',
                     'MB': 0,
-                })
+                }
+                value = dd.get(h['field'])
+                if isinstance(value, str):
+                    value = self.decode(value, encoding)
+                item['data'] = value
+                row.append(item)
             self._data.append(row)
         self._columns_width = [0] * self.column_count()
 
