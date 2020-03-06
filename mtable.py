@@ -191,19 +191,18 @@ class MarkupTable(object):
                 item = self.get_item(0, column, header=True)
                 mb = self.cjk_count(self.get_item_text(0, column, header=True))
                 text = self.get_item_text(0, column, header=True)
-                if True:
-                    self._columns_width[column] = wcswidth(text)
-                else:
-                    self._columns_width[column] = len(text) + mb
+                w = wcswidth(text)
+                if w < 1:
+                    w = len(text) + mb
+                self._columns_width = w
                 item['MB'] = mb
             # data
             for row in range(self.row_count()):
                 item = self.get_item(row, column)
                 text = self.get_item_text(row, column, header=False)
                 mb = self.cjk_count(text)
-                if True:
-                    w = wcswidth(text)
-                else:
+                w = wcswidth(text)
+                if w < 1:
                     w = len(text) + mb
                 self._columns_width[column] = max(w, self._columns_width[column])
                 item['MB'] = mb
@@ -273,7 +272,10 @@ class MarkupTable(object):
         width = self._columns_width[column] - item['MB']
         align = AlignSymbol.get(item['align'])
         text = self.get_item_text(row, column, header)
-        view = u'{:{align}{width}}'.format(text, align=align, width=width)
+        if width > 0:
+            view = u'{:{align}{width}}'.format(text, align=align, width=width)
+        else:
+            view = text
         return view
 
     @staticmethod
