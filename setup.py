@@ -4,7 +4,7 @@
 from setuptools import setup
 
 
-VERSION = '0.1.9'
+VERSION = '0.1.10'
 
 
 with open('README.rst') as f:
