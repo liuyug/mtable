@@ -194,7 +194,7 @@ class MarkupTable(object):
                 w = wcswidth(text)
                 if w < 1:
                     w = len(text) + mb
-                self._columns_width = w
+                self._columns_width[column] = w
                 item['MB'] = mb
             # data
             for row in range(self.row_count()):
