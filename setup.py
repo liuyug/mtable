@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- encoding:utf-8 -*-
 
+import re
 from setuptools import setup
 
 
-VERSION = '0.1.10'
-
+with open('mtable.py') as f:
+    content = f.read()
+    mo = re.search(r"VERSION = ('[\d\.]+')\n", content)
+    VERSION = mo.group(1)
 
 with open('README.rst') as f:
     long_description = f.read()

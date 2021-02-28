@@ -5,9 +5,13 @@ import re
 import sys
 import csv
 import json
+import copy
 
 from bs4 import BeautifulSoup
 from wcwidth import wcswidth
+
+
+VERSION = '0.1.20'
 
 
 AlignSymbol = {
@@ -44,103 +48,131 @@ class MarkupTable(object):
             self.row_count(), self.column_count()
         )
 
-    def set_data(self, data, header=None, encoding=None):
-        """header = ['title1', 'title2', ...]
+    def set_data(self, data, header=None, footer=None, encoding=None):
+        """input list format:
+        header = ['title1', 'title2', ...]
         data = [['value1', 'value2', ...], ...]
         """
         if header:
             for h in header:
                 self._header.append({
-                    'data': self.decode(h, encoding),
-                    'format': lambda x: '%s' % x,
+                    'title': self.decode(h, encoding),
+                    'render': lambda x: '%s' % x,
                     'align': 'center',
                     'MB': 0,
                 })
-        for dd in data:
+        else:
+            # create fake header
+            for h in data[0]:
+                self._header.append({
+                    'title': None,
+                    'render': lambda x: '%s' % x,
+                    'align': 'center',
+                    'MB': 0,
+                })
+        self._footer = copy.deepcopy(self._header)
+        for record in data:
             row = []
-            for d in dd:
+            for value in record:
+                if isinstance(value, str):
+                    value = self.decode(value, encoding)
                 row.append({
-                    'data': self.decode(d, encoding),
-                    'format': lambda x: '%s' % x,
-                    'align': 'left',
+                    'data': value,
                     'MB': 0,
                 })
             self._data.append(row)
         self._columns_width = [0] * self.column_count()
 
-    def set_dict_data(self, data, header=None, encoding=None):
-        """header = [{'field': 'key1', 'title': ''}, {'field': 'key2', }...]
+    def set_dict_data(self, data, header=None, footer=None, encoding=None):
+        """header = [{'data': 'key1', 'title': '', 'render': func, 'align': 'center'} {'data': 'key2', }...]
         data = [{'key1': 'value1', 'key2': 'value2', ...}, ...]
+
+        data: column field
+        title: column display name
+        encoding: title encoding
         """
+        # table header
         if not header:
-            header = [{'field': k, 'title': k} for k in data[0]]
-        if not isinstance(header[0], dict):
-            header = [{'field': k, 'title': k} for k in header]
-        for h in header:
-            item = {
-                'data': self.decode(h['title'], encoding),
-                'format': lambda x: '%s' % x,
-                'align': 'center',
-                'MB': 0,
-            }
-            if 'field' in h:
-                item['field'] = h['field']
-            elif 'data' in h:
-                item['field'] = h['data']
-            self._header.append(item)
-        for dd in data:
-            row = []
+            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'center'} for k in data[0]]
+        elif isinstance(header[0], list) or isinstance(header[0], tuple):
+            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'center'} for k in header]
+        else:
+            # header is dict
             for h in header:
                 item = {
-                    'format': lambda x: '%s' % x,
-                    'align': 'left',
-                    'MB': 0,
+                    'title': self.decode(h['title'], encoding),
+                    'render': h.get('render') or (lambda x: '%s' % x),
+                    'align': h.get('align') or 'center',
+                    'MB': 0,    # width, internal use.
                 }
-                value = dd.get(h['field'])
+                # for compatiable old field
+                if 'data' in h:
+                    item['data'] = h['data']
+                elif 'field' in h:
+                    item['data'] = h['field']
+                self._header.append(item)
+        # table footer
+        if footer:
+            pass
+        else:
+            self._footer = copy.deepcopy(self._header)
+        # table data
+        for record in data:
+            row = []
+            for h in header:
+                value = record.get(h['data'])
                 if isinstance(value, str):
                     value = self.decode(value, encoding)
-                item['data'] = value
-                row.append(item)
+                cell = {
+                    'data': value,
+                    'MB': 0,
+                }
+                row.append(cell)
             self._data.append(row)
         self._columns_width = [0] * self.column_count()
 
     def set_dataframe_data(self, df, encoding='utf-8'):
         for h in df.columns:
             self._header.append({
-                'data': self.decode(h, encoding),
-                'format': lambda x: '%s' % x,
+                'title': self.decode(h, encoding),
+                'render': lambda x: '%s' % x,
                 'align': 'center',
                 'MB': 0,
             })
+        self._footer = copy.deepcopy(self._header)
         for idx in df.index:
             row = []
             for h in df.columns:
+                value = df.loc[idx, h]
+                if isinstance(value, str):
+                    value = self.decode(value, encoding)
                 row.append({
                     'data': df.loc[idx, h],
-                    'format': lambda x: '%s' % x,
-                    'align': 'left',
                     'MB': 0,
                 })
             self._data.append(row)
         self._columns_width = [0] * self.column_count()
 
-    def feed_header(self, header, encoding=None):
+    def feed_header(self, header, footer=None, encoding=None):
+        """create table by step with list mode
+        """
         for h in header:
             self._header.append({
-                'data': self.decode(h, encoding),
-                'format': lambda x: '%s' % x,
+                'title': self.decode(h, encoding),
+                'render': lambda x: '%s' % x,
                 'align': 'center',
                 'MB': 0,
             })
+        self._footer = copy.deepcopy(self._header)
 
     def feed(self, data, encoding=None):
-        for dd in data:
+        for record in data:
             row = []
-            for d in dd:
+            for value in record:
+                if isinstance(value, str):
+                    value = self.decode(value, encoding)
                 row.append({
-                    'data': self.decode(d, encoding),
-                    'format': lambda x: '%s' % x,
-                    'align': 'left',
+                    'data': value,
                     'MB': 0,
                 })
             self._data.append(row)
@@ -150,6 +182,7 @@ class MarkupTable(object):
 
     def clearall(self):
         self._header = []
+        self._footer = []
         self._data = []
         self._columns_width = []
 
@@ -157,19 +190,12 @@ class MarkupTable(object):
         return len(self._data)
 
     def column_count(self):
-        return len(self._data[0]) if self._data else 0
+        return len(self._header)
 
     def is_empty(self):
         return len(self._header) == 0 and self.column_count() == 0
 
     def is_invalid(self):
-        cols = self.column_count()
-        if self._header:
-            if len(self._header) != cols:
-                return True
-        for row in self._data:
-            if len(row) != cols:
-                return True
         return False
 
     def decode(self, value, encoding=None):
@@ -188,24 +214,24 @@ class MarkupTable(object):
         for column in columns:
             # header
             if self._header:
-                item = self.get_item(0, column, header=True)
-                mb = self.cjk_count(self.get_item_text(0, column, header=True))
-                text = self.get_item_text(0, column, header=True)
+                cell = self.get_cell(0, column, header=True)
+                text = self.render_data(0, column, header=True)
+                mb = self.cjk_count(text)
                 w = wcswidth(text)
                 if w < 1:
                     w = len(text) + mb
                 self._columns_width[column] = w
-                item['MB'] = mb
+                cell['MB'] = mb
             # data
             for row in range(self.row_count()):
-                item = self.get_item(row, column)
-                text = self.get_item_text(row, column, header=False)
+                cell = self.get_cell(row, column)
+                text = self.render_data(row, column, header=False)
                 mb = self.cjk_count(text)
                 w = wcswidth(text)
                 if w < 1:
                     w = len(text) + mb
                 self._columns_width[column] = max(w, self._columns_width[column])
-                item['MB'] = mb
+                cell['MB'] = mb
         return self._columns_width
 
     @staticmethod
@@ -218,65 +244,84 @@ class MarkupTable(object):
                     break
         return count
 
-    def get_item(self, row, column, header=False):
+    def get_cell(self, row, column, header=False):
         if header:
             return self._header[column]
         else:
             return self._data[row][column]
-
-    def get_item_text(self, row, column, header=False):
-        item = self.get_item(row, column, header)
-        value = item['data']
-        if value is None:
-            text = self._null_char
-        else:
-            text = item['format'](value)
-        return text
 
     def set_align(self, align, rows=None, columns=None):
         """align: left, right, center
         """
         if rows is None:
             rows = range(self.row_count())
-        if isinstance(rows, int):
+        elif isinstance(rows, int):
             rows = [rows]
         if columns is None:
             columns = range(self.column_count())
-        if isinstance(columns, int):
+        elif isinstance(columns, int):
             columns = [columns]
         for row in rows:
             for column in columns:
                 self._data[row][column]['align'] = align
 
-    def set_format(self, fmt_func, rows=None, columns=None):
+    def set_render(self, render_func, rows=None, columns=None):
+        """set render function of cell
+        """
         if rows is None:
             rows = range(self.row_count())
-        if isinstance(rows, int):
+        elif isinstance(rows, int):
             rows = [rows]
         if columns is None:
             columns = range(self.column_count())
-        if isinstance(columns, int):
+        elif isinstance(columns, int):
             columns = [columns]
         for row in rows:
             for column in columns:
-                self._data[row][column]['format'] = fmt_func
+                self._data[row][column]['render'] = render_func
 
-    def get_data(self, row, column, role='data', header=False):
-        item = self.get_item(row, column, header)
-        return item.get(role)
+    set_format = set_render
 
-    def get_view_data_item(self, row, column, header=False):
-        """render cell item
+    def get_cell_data(self, row, column, role='data', header=False):
+        """get cell data"""
+        cell = self.get_cell(row, column, header)
+        return cell.get(role)
+
+    def render_data(self, row, column, header=False):
+        """render data
         """
-        item = self.get_item(row, column, header)
-        width = self._columns_width[column] - item['MB']
-        align = AlignSymbol.get(item['align'])
-        text = self.get_item_text(row, column, header)
-        if width > 0:
-            view = u'{:{align}{width}}'.format(text, align=align, width=width)
+        h_cell = self.get_cell(row, column, header=True)
+        if header:
+            text = h_cell.get('title') or ''
         else:
-            view = text
-        return view
+            cell = self.get_cell(row, column, header=False)
+            value = cell['data']
+            if value is None:
+                text = self._null_char
+            else:
+                render_func = cell.get('render') or h_cell.get('render')
+                text = render_func(value)
+        return text
+
+    def render_cell(self, row, column, header=False):
+        """render cell
+        """
+        h_cell = self.get_cell(row, column, header=True)
+        if header:
+            cell = h_cell
+        else:
+            cell = self.get_cell(row, column, header=False)
+        align = cell.get('align') or h_cell.get('align')
+        align = AlignSymbol.get(align)
+
+        text = self.render_data(row, column, header)
+
+        width = self._columns_width[column] - cell['MB']
+        if width > 0:
+            cell_text = '{:{align}{width}}'.format(text, align=align, width=width)
+            return cell_text
+        else:
+            return text
 
     @staticmethod
     def from_list(data, header=None):
@@ -481,7 +526,7 @@ class MarkupTable(object):
             tables.append(mt)
         return tables
 
-    def to_rst(self, style=None):
+    def to_rst(self, style=None, footer=False):
         """two styles: False or True
         """
         if self.is_empty() or self.is_invalid():
@@ -515,7 +560,7 @@ class MarkupTable(object):
                 tr = [v_separator]
             for col in range(self.column_count()):
                 tr.append(self._left_padding)
-                tr.append(self.get_view_data_item(0, col, header=True))
+                tr.append(self.render_cell(0, col, header=True))
                 tr.append(self._right_padding)
                 tr.append(v_separator)
             t.append(''.join(tr))
@@ -533,17 +578,21 @@ class MarkupTable(object):
                 tr = [v_separator]
             for column in range(self.column_count()):
                 tr.append(self._left_padding)
-                tr.append(self.get_view_data_item(row, column))
+                tr.append(self.render_cell(row, column))
                 tr.append(self._right_padding)
                 tr.append(v_separator)
             t.append(''.join(tr))
+            if not style:
+                t.append(''.join(tr_s))
+        if footer:
+            t.append(t[1])
             if not style:
                 t.append(''.join(tr_s))
         if style:
             t.append(''.join(th_s))
         return '\n'.join(t) + '\n'
 
-    def to_md(self):
+    def to_md(self, footer=False):
         if self.is_empty() or self.is_invalid():
             return ''
         t = []
@@ -558,7 +607,7 @@ class MarkupTable(object):
             tr = [v_separator]
             for col in range(self.column_count()):
                 tr.append(self._left_padding)
-                tr.append(self.get_view_data_item(0, col, header=True))
+                tr.append(self.render_cell(0, col, header=True))
                 tr.append(self._right_padding)
                 tr.append(v_separator)
             t.append(''.join(tr))
@@ -568,10 +617,12 @@ class MarkupTable(object):
             tr = [v_separator]
             for column in range(self.column_count()):
                 tr.append(self._left_padding)
-                tr.append(self.get_view_data_item(row, column))
+                tr.append(self.render_cell(row, column))
                 tr.append(self._right_padding)
                 tr.append(v_separator)
             t.append(''.join(tr))
+        if footer:
+            t.append(t[0])
         return '\n'.join(t) + '\n'
 
     def to_html(self, filename=None, full=False, encoding=None):
@@ -592,13 +643,13 @@ class MarkupTable(object):
         if self._header:
             html.append('<tr>')
             for column in range(self.column_count()):
-                html.append('<th>%s</th>' % self.get_item_text(0, column, header=True))
+                html.append('<th>%s</th>' % self.render_data(0, column, header=True))
             html.append('</tr>')
         # data
         for row in range(self.row_count()):
             html.append('<tr>')
             for column in range(self.column_count()):
-                html.append('<td>%s</td>' % self.get_item_text(row, column))
+                html.append('<td>%s</td>' % self.render_data(row, column))
             html.append('</tr>')
         html.append('</table>')
         if full:
@@ -616,12 +667,12 @@ class MarkupTable(object):
         if self._header:
             row_data = []
             for column in range(self.column_count()):
-                row_data.append(self.get_item_text(0, column, header=True))
+                row_data.append(self.render_data(0, column, header=True))
             data.append('\t'.join(row_data))
         for row in range(self.row_count()):
             row_data = []
             for column in range(self.column_count()):
-                row_data.append(self.get_item_text(row, column))
+                row_data.append(self.render_data(row, column))
             data.append('\t'.join(row_data))
         return '\n'.join(data)
 
@@ -634,12 +685,12 @@ class MarkupTable(object):
             if self._header:
                 row_data = []
                 for column in range(self.column_count()):
-                    row_data.append(self.get_item_text(0, column, header=True))
+                    row_data.append(self.render_data(0, column, header=True))
                 writer.writerow(row_data)
             for row in range(self.row_count()):
                 row_data = []
                 for column in range(self.column_count()):
-                    row_data.append(self.get_item_text(row, column))
+                    row_data.append(self.render_data(row, column))
                 writer.writerow(row_data)
 
     def to_json(self, filename):
@@ -647,20 +698,20 @@ class MarkupTable(object):
         header = []
         if self._header:
             for x in range(self.column_count()):
-                header.append(self.get_data(0, x, header=True))
+                header.append(self.get_cell_data(0, x, header=True))
         dict_data['header'] = header
         data = []
         if header:
             for y in range(self.row_count()):
                 row = {}
                 for x in range(self.column_count()):
-                    row[header[x]] = self.get_data(y, x)
+                    row[header[x]] = self.get_cell_data(y, x)
                 data.append(row)
         else:
             for y in range(self.row_count()):
                 row = []
                 for x in range(self.column_count()):
-                    row.append(self.get_data(y, x))
+                    row.append(self.get_cell_data(y, x))
                 data.append(row)
 
         dict_data['data'] = data
