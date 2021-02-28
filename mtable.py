@@ -58,7 +58,7 @@ class MarkupTable(object):
                 self._header.append({
                     'title': self.decode(h, encoding),
                     'render': lambda x: '%s' % x,
-                    'align': 'center',
+                    'align': 'left',
                     'MB': 0,
                 })
         else:
@@ -67,7 +67,7 @@ class MarkupTable(object):
                 self._header.append({
                     'title': None,
                     'render': lambda x: '%s' % x,
-                    'align': 'center',
+                    'align': 'left',
                     'MB': 0,
                 })
         self._footer = copy.deepcopy(self._header)
@@ -84,7 +84,7 @@ class MarkupTable(object):
         self._columns_width = [0] * self.column_count()
 
     def set_dict_data(self, data, header=None, footer=None, encoding=None):
-        """header = [{'data': 'key1', 'title': '', 'render': func, 'align': 'center'} {'data': 'key2', }...]
+        """header = [{'data': 'key1', 'title': '', 'render': func, 'align': 'left'} {'data': 'key2', }...]
         data = [{'key1': 'value1', 'key2': 'value2', ...}, ...]
 
         data: column field
@@ -93,16 +93,16 @@ class MarkupTable(object):
         """
         # table header
         if not header:
-            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'center'} for k in data[0]]
+            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in data[0]]
         elif isinstance(header[0], list) or isinstance(header[0], tuple):
-            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'center'} for k in header]
+            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in header]
         else:
             # header is dict
             for h in header:
                 item = {
                     'title': self.decode(h['title'], encoding),
                     'render': h.get('render') or (lambda x: '%s' % x),
-                    'align': h.get('align') or 'center',
+                    'align': h.get('align') or 'left',
                     'MB': 0,    # width, internal use.
                 }
                 # for compatiable old field
@@ -136,7 +136,7 @@ class MarkupTable(object):
             self._header.append({
                 'title': self.decode(h, encoding),
                 'render': lambda x: '%s' % x,
-                'align': 'center',
+                'align': 'left',
                 'MB': 0,
             })
         self._footer = copy.deepcopy(self._header)
@@ -160,7 +160,7 @@ class MarkupTable(object):
             self._header.append({
                 'title': self.decode(h, encoding),
                 'render': lambda x: '%s' % x,
-                'align': 'center',
+                'align': 'left',
                 'MB': 0,
             })
         self._footer = copy.deepcopy(self._header)
