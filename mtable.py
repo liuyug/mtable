@@ -93,7 +93,7 @@ class MarkupTable(object):
         """
         # table header
         if not header:
-            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in data[0]]
+            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in data[0].keys()]
         elif isinstance(header[0], list) or isinstance(header[0], tuple):
             header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in header]
         else:
