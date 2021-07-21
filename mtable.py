@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from wcwidth import wcswidth
 
 
-VERSION = '0.1.20'
+VERSION = '0.1.21'
 
 
 AlignSymbol = {
@@ -93,9 +93,9 @@ class MarkupTable(object):
         """
         # table header
         if not header:
-            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in data[0].keys()]
-        elif isinstance(header[0], list) or isinstance(header[0], tuple):
-            header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in header]
+            self._header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in data[0].keys()]
+        elif isinstance(header, list) or isinstance(header[0], tuple):
+            self._header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in header]
         else:
             # header is dict
             for h in header:
@@ -119,7 +119,7 @@ class MarkupTable(object):
         # table data
         for record in data:
             row = []
-            for h in header:
+            for h in self._header:
                 value = record.get(h['data'])
                 if isinstance(value, str):
                     value = self.decode(value, encoding)
