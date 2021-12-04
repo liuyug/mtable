@@ -511,8 +511,8 @@ class MarkupTable(object):
                             row.extend([' '] * (int(th.get('colspan')) - 1))
                     mt.feed_header(row)
                     column_count = len(row)
-                elif tr.find('td'):
-                    for td in tr.find_all('td'):
+                elif tr.find(['th', 'td']):
+                    for td in tr.find_all(['th', 'td']):
                         text = strip_text(' '.join(td.stripped_strings))
                         row.append(text)
                         if td.get('colspan'):
