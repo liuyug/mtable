@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from wcwidth import wcswidth
 
 
-VERSION = '0.1.21'
+VERSION = '0.1.22'
 
 
 AlignSymbol = {

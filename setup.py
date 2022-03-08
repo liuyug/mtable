@@ -7,7 +7,7 @@ from setuptools import setup
 
 with open('mtable.py') as f:
     content = f.read()
-    mo = re.search(r"VERSION = ('[\d\.]+')\n", content)
+    mo = re.search(r"VERSION = '([\d\.]+)'\n", content)
     VERSION = mo.group(1)
 
 with open('README.rst') as f:
