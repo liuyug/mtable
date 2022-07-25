@@ -10,7 +10,7 @@ with open('mtable.py') as f:
     mo = re.search(r"VERSION = '([\d\.]+)'\n", content)
     VERSION = mo.group(1)
 
-with open('README.rst') as f:
+with open('README.rst', encoding='utf-8') as f:
     long_description = f.read()
 
 requirements = []
