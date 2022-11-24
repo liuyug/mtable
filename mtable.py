@@ -53,6 +53,8 @@ class MarkupTable(object):
         header = ['title1', 'title2', ...]
         data = [['value1', 'value2', ...], ...]
         """
+        if not data:
+            return
         if header:
             for h in header:
                 self._header.append({
@@ -91,6 +93,8 @@ class MarkupTable(object):
         title: column display name
         encoding: title encoding
         """
+        if not data:
+            return
         # table header
         if not header:
             self._header = [{'data': k, 'title': k, 'render': lambda x: '%s' % x, 'align': 'left'} for k in data[0].keys()]
