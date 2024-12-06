@@ -347,12 +347,78 @@ class MarkupTable(object):
             tables.append(mt)
         return tables
 
-    def to_txt(self):
-        return self.to_rst(simple=False, h_sep='-')
+    def to_txt(self, simple=True):
+        h_sep = '-'
+        d_sep = '-'
+        v_sep = '|'
+        c_sep = '+'
 
-    def to_rst(self, simple=True, h_sep='=', d_sep='-', v_sep='|', c_sep='+'):
+        if self.is_empty() or self.is_invalid():
+            return ''
+        t = []
+        widths = self._calc_widths()
+
+        h_separator = h_sep
+        d_separator = d_sep
+        v_separator = v_sep
+        c_separator = c_sep
+        th_s = [c_separator]
+        tr_s = [c_separator]
+
+        for w in widths:
+            # data
+            tr_s.append(d_separator * (
+                len(self._left_padding) + w + len(self._right_padding)))
+            tr_s.append(c_separator)
+
+            # header
+            th_s.append(h_separator * (
+                len(self._left_padding) + w + len(self._right_padding)))
+            th_s.append(c_separator)
+
+        # header
+        if self._header > 0:
+            for h in range(self._header):
+                if simple:
+                    t.append(''.join(th_s))
+                else:
+                    t.append(''.join(tr_s))
+
+                tr = [v_separator]
+                for col in range(self.column_count()):
+                    tr.append(self._left_padding)
+                    tr.append(self.render_cell(h, col))
+                    tr.append(self._right_padding)
+                    tr.append(v_separator)
+                t.append(''.join(tr))
+            t.append(''.join(th_s))
+        else:
+            if simple:
+                t.append(''.join(th_s))
+            else:
+                t.append(''.join(tr_s))
+        # data
+        for row in range(self._header, self.row_count()):
+            tr = [v_separator]
+            for column in range(self.column_count()):
+                tr.append(self._left_padding)
+                tr.append(self.render_cell(row, column))
+                tr.append(self._right_padding)
+                tr.append(v_separator)
+            t.append(''.join(tr))
+            if not simple:
+                t.append(''.join(tr_s))
+        if simple:
+            t.append(''.join(th_s))
+        return '\n'.join(t) + '\n'
+
+    def to_rst(self, simple=True):
         """two styles: False or True
         """
+        h_sep = '='
+        d_sep = '-'
+        v_sep = '|'
+        c_sep = '+'
         if self.is_empty() or self.is_invalid():
             return ''
         t = []

@@ -21,7 +21,8 @@ def test_text():
     print('''
 txt table
 ---------''')
-    print(table.to_txt())
+    print(table.to_txt(simple=True))
+    print(table.to_txt(simple=False))
 
 
 def test_rst():
