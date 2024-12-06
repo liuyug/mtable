@@ -133,10 +133,12 @@ class MarkupTable(object):
             rows = range(self.row_count())
         elif isinstance(rows, int):
             rows = [rows]
+
         if columns is None:
             columns = range(self.column_count())
         elif isinstance(columns, int):
             columns = [columns]
+
         for row in rows:
             for column in columns:
                 self._data[row][column]['align'] = align
@@ -155,11 +157,6 @@ class MarkupTable(object):
         for row in rows:
             for column in columns:
                 self._data[row][column]['render'] = render_func
-
-    # def get_cell_data(self, row, column, role='data'):
-    #     """get cell data"""
-    #     cell = self.get_cell(row, column)
-    #     return cell.get(role)
 
     def render_data(self, row, column):
         """render data

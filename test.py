@@ -23,6 +23,17 @@ txt table
 ---------''')
     print(table.to_txt(simple=True))
     print(table.to_txt(simple=False))
+    # center
+    rowCount = table.row_count()
+    table.set_align('center', rows=[0])
+    # left
+    table.set_align('left', rows=range(1, rowCount), columns=[2])
+    # right
+    table.set_align('right', rows=range(1, rowCount), columns=[3])
+
+    table.set_format(lambda x: '{} %'.format(x), columns=[3])
+
+    print(table.to_txt(simple=False))
 
 
 def test_rst():

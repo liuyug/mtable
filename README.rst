@@ -36,6 +36,13 @@ Example
     print(table.to_md())
     print(table.to_csv('csv_file'))
 
+    table.append_row(['a', 'b', 'c', 'd', 'e'])
+    table.set_align('center', rows=[0])
+    table.set_align('left',rows=range(1, table.row_count(), columns=[3])
+    table.set_align('right',rows=range(1, table.row_count(), columns=[4])
+
+    table.set_format(lambda x: '{:,.2f} %'.format(x), rows=range(1, table.row_count()), columns=[4])
+
     table = MarkupTable.from_html(open('html_file').read())
     print(table.to_rst())
 
