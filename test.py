@@ -7,39 +7,34 @@ import chardet
 import mtable
 
 
-header = ['名字', '网站', '备注', '其它']
 data = [
-    ['百度', 'www.baidu.com', '搜索，网盘，地图', None],
-    ['新浪', 'www.sina.com.cn', '新闻', None],
+    ['名字', '网站', '备注', '其它'],
+    ['百度', 'www.baidu.com', '搜索，网盘，地图', 4],
+    ['新浪', 'www.sina.com.cn', '新闻', 13],
     ['腾讯', 'www.qq.com', '聊天', '微信'],
     ['网易', 'www.163.com', '邮箱', '１２３'],
 ]
 
 
+def test_text():
+    table = mtable.MarkupTable(data, header=1)
+    print('''
+txt table
+---------''')
+    print(table.to_txt())
+
+
 def test_rst():
-    table = mtable.MarkupTable()
-    table.set_data(data, header, encoding='utf8')
+    table = mtable.MarkupTable(data, header=1)
     print('''
 rst table
 ---------''')
     print(table.to_rst())
-    print(table.to_rst(1))
-
-
-def test_rst_noheader():
-    # no header
-    table2 = mtable.MarkupTable()
-    table2.set_data(data, encoding='utf8')
-    print('''
-rst table with no header
-------------------------''')
-    print(table2.to_rst())
-    print(table2.to_rst(1))
+    print(table.to_rst(simple=False))
 
 
 def test_md():
-    table = mtable.MarkupTable()
-    table.set_data(data, header, encoding='utf8')
+    table = mtable.MarkupTable(data, header=1)
     print('''
 md table
 --------''')
@@ -47,8 +42,7 @@ md table
 
 
 def test_csv():
-    table = mtable.MarkupTable()
-    table.set_data(data, header, encoding='utf8')
+    table = mtable.MarkupTable(data, header=1)
     print('''
 csv table
 ---------
@@ -58,8 +52,7 @@ output test.csv
 
 
 def test_html():
-    table = mtable.MarkupTable()
-    table.set_data(data, header, encoding='utf8')
+    table = mtable.MarkupTable(data, header=1)
     print('''
 html table
 ----------
@@ -69,8 +62,7 @@ output test.html
 
 
 def test_json():
-    table = mtable.MarkupTable()
-    table.set_data(data, header, encoding='utf8')
+    table = mtable.MarkupTable(data, header=1)
     print('''
 json table
 ----------
@@ -160,30 +152,14 @@ from md
         print(table.to_rst())
 
 
-def test_from_txt():
-    print('''
-from text
----------''')
-    txt_file = 'test.txt'
-    with open(txt_file, 'rb') as f:
-        encoding = chardet.detect(f.read(4096)).get('encoding')
-        if not encoding or encoding == 'ascii':
-            encoding = 'utf-8'
-    with open(txt_file, 'rt', encoding=encoding, newline='') as f:
-        table = mtable.MarkupTable.from_txt(f.read())
-        print(table.to_rst())
-
-
 if __name__ == '__main__':
+    test_text()
     test_rst()
-    test_rst_noheader()
     test_md()
-    test_html()
-    test_csv()
-    test_json()
-    test_from_html()
-    # test_from_html2()
-    test_from_csv()
-    test_from_rst()
-    test_from_md()
-    test_from_txt()
+    # test_html()
+    # test_csv()
+    # test_json()
+    # test_from_html()
+    # test_from_csv()
+    # test_from_rst()
+    # test_from_md()
